@@ -1,14 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Shift, ShiftWithRelations, ShiftStatus } from '@/lib/types';
 import { useAuth } from './useAuth';
 import { useRestaurants } from './useRestaurants';
+import Constants from 'expo-constants';
 
 export function useShifts() {
   const { user } = useAuth();
   const { verifications } = useRestaurants();
   const [shifts, setShifts] = useState<ShiftWithRelations[]>([]);
   const [loading, setLoading] = useState(true);
+  const subscriptionRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -17,13 +19,12 @@ export function useShifts() {
     }
 
     return () => {
-      if (subscription) {
-        supabase.removeChannel(subscription);
+      if (subscriptionRef.current) {
+        supabase.removeChannel(subscriptionRef.current);
+        subscriptionRef.current = null;
       }
     };
   }, [user, verifications]);
-
-  let subscription: any = null;
 
   const fetchShifts = async () => {
     if (!user) return;
@@ -70,7 +71,7 @@ export function useShifts() {
 
     if (verifiedRestaurantIds.length === 0) return;
 
-    subscription = supabase
+    subscriptionRef.current = supabase
       .channel('shifts-changes')
       .on(
         'postgres_changes',
@@ -121,7 +122,7 @@ export function useShifts() {
 
     // Trigger SMS notification to manager via Edge Function
     try {
-      const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+      const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl || process.env.EXPO_PUBLIC_SUPABASE_URL;
       if (supabaseUrl) {
         await fetch(`${supabaseUrl}/functions/v1/send-sms`, {
           method: 'POST',
