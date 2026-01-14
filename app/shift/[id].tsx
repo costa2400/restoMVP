@@ -26,7 +26,11 @@ export default function ShiftDetailScreen() {
 
   useEffect(() => {
     fetchShift();
-    subscribeToShift();
+    const unsubscribe = subscribeToShift();
+
+    return () => {
+      unsubscribe?.();
+    };
   }, [id]);
 
   const fetchShift = async () => {

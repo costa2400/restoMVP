@@ -1,6 +1,6 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useState } from 'react';
-import { format, startOfWeek, endOfWeek, addDays } from 'date-fns';
+import { useState, useEffect, useCallback } from 'react';
+import { startOfWeek, endOfWeek } from 'date-fns';
 
 interface ShiftFiltersProps {
   onDateRangeChange: (start: Date, end: Date) => void;
@@ -9,8 +9,7 @@ interface ShiftFiltersProps {
 export default function ShiftFilters({ onDateRangeChange }: ShiftFiltersProps) {
   const [selectedRange, setSelectedRange] = useState<'today' | 'week' | 'month'>('week');
 
-  const handleRangeSelect = (range: 'today' | 'week' | 'month') => {
-    setSelectedRange(range);
+  const getDateRange = useCallback((range: 'today' | 'week' | 'month') => {
     const today = new Date();
     let start: Date;
     let end: Date;
@@ -30,6 +29,18 @@ export default function ShiftFilters({ onDateRangeChange }: ShiftFiltersProps) {
         break;
     }
 
+    return { start, end };
+  }, []);
+
+  // Apply initial filter on mount
+  useEffect(() => {
+    const { start, end } = getDateRange(selectedRange);
+    onDateRangeChange(start, end);
+  }, []);
+
+  const handleRangeSelect = (range: 'today' | 'week' | 'month') => {
+    setSelectedRange(range);
+    const { start, end } = getDateRange(range);
     onDateRangeChange(start, end);
   };
 

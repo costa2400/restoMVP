@@ -56,7 +56,11 @@ export function useAuth() {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      phone,
+      options: {
+        data: {
+          phone: phone || null,
+        },
+      },
     });
 
     if (error) throw error;
